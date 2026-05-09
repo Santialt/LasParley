@@ -2,6 +2,14 @@
 
 App estatica para seguir apuestas deportivas grupales: stake, cuota, estado, balance, ROI y rendimiento de la banda.
 
+La app incluye una pantalla de ingreso simple para que el link no quede abierto a cualquiera. La clave por defecto esta en `app.js`:
+
+```js
+const ACCESS_CODE = "parley";
+```
+
+Esto sirve como filtro liviano para amigos. No es seguridad real de servidor, porque GitHub Pages publica archivos estaticos.
+
 ## Como hostearla en GitHub Pages
 
 1. Crear un repo nuevo en GitHub.

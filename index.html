@@ -12,13 +12,30 @@
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="is-locked">
+    <section class="login-screen" id="loginScreen" aria-label="Ingreso privado">
+      <form class="login-card" id="loginForm">
+        <p class="eyebrow">Mesa privada</p>
+        <h1>La Banca del Finde</h1>
+        <label>
+          Clave de la banda
+          <input id="accessCodeInput" type="password" autocomplete="current-password" placeholder="Clave" required />
+        </label>
+        <p class="login-error" id="loginError" role="alert"></p>
+        <button class="primary-button" type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <div class="site-content" id="siteContent" aria-hidden="true">
     <header class="topbar">
       <div>
         <p class="eyebrow">Banca compartida</p>
         <h1>La Banca del Finde</h1>
       </div>
       <div class="topbar-actions">
+        <button class="ghost-button" id="logoutButton" type="button" title="Cerrar sesion">
+          Salir
+        </button>
         <button class="ghost-button" id="exportButton" type="button" title="Exportar datos">
           Exportar
         </button>
@@ -163,5 +180,6 @@
     </template>
 
     <script src="app.js"></script>
+    </div>
   </body>
 </html>

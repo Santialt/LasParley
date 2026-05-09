@@ -1,4 +1,6 @@
 const STORAGE_KEY = "apuestas-finde-bets-v2";
+const ACCESS_STORAGE_KEY = "las-parley-access-ok";
+const ACCESS_CODE = "parley";
 
 const state = {
   bets: loadBets(),
@@ -37,8 +39,38 @@ const weekStrip = document.querySelector("#weekStrip");
 const searchInput = document.querySelector("#searchInput");
 const exportButton = document.querySelector("#exportButton");
 const importInput = document.querySelector("#importInput");
+const loginScreen = document.querySelector("#loginScreen");
+const loginForm = document.querySelector("#loginForm");
+const accessCodeInput = document.querySelector("#accessCodeInput");
+const loginError = document.querySelector("#loginError");
+const siteContent = document.querySelector("#siteContent");
+const logoutButton = document.querySelector("#logoutButton");
+
+initAccessGate();
 
 document.querySelector("#dateInput").valueAsDate = new Date();
+
+loginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (accessCodeInput.value.trim() !== ACCESS_CODE) {
+    loginError.textContent = "Clave incorrecta. Esta mesa no es para cualquiera.";
+    accessCodeInput.select();
+    return;
+  }
+
+  sessionStorage.setItem(ACCESS_STORAGE_KEY, "true");
+  unlockApp();
+});
+
+logoutButton.addEventListener("click", () => {
+  sessionStorage.removeItem(ACCESS_STORAGE_KEY);
+  document.body.classList.add("is-locked");
+  loginScreen.hidden = false;
+  siteContent.setAttribute("aria-hidden", "true");
+  accessCodeInput.value = "";
+  loginError.textContent = "";
+  accessCodeInput.focus();
+});
 
 betForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -289,6 +321,24 @@ function saveBets() {
 
 function isValidBet(bet) {
   return bet && bet.id && bet.event && bet.date && bet.friend && bet.pick && bet.status && bet.odds;
+}
+
+function initAccessGate() {
+  if (sessionStorage.getItem(ACCESS_STORAGE_KEY) === "true") {
+    unlockApp();
+    return;
+  }
+
+  document.body.classList.add("is-locked");
+  loginScreen.hidden = false;
+  siteContent.setAttribute("aria-hidden", "true");
+  requestAnimationFrame(() => accessCodeInput.focus());
+}
+
+function unlockApp() {
+  document.body.classList.remove("is-locked");
+  loginScreen.hidden = true;
+  siteContent.setAttribute("aria-hidden", "false");
 }
 
 render();

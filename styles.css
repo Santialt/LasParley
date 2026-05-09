@@ -58,16 +58,26 @@ button {
 }
 
 .is-locked .site-content {
-  display: none;
+  filter: blur(5px);
+  pointer-events: none;
+  user-select: none;
 }
 
 .login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
   display: grid;
   min-height: 100vh;
   place-items: center;
   padding: 22px;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(225, 179, 77, 0.24), transparent 32%),
+    rgba(3, 18, 14, 0.82);
+  backdrop-filter: blur(2px);
 }
 
+body:not(.is-locked) .login-screen,
 .login-screen[hidden] {
   display: none;
 }
@@ -83,6 +93,10 @@ button {
   display: grid;
   gap: 16px;
   padding: 26px;
+}
+
+.login-card .eyebrow {
+  color: var(--accent-dark);
 }
 
 .login-card h1 {

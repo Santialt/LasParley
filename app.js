@@ -1,11 +1,16 @@
-const STORAGE_KEY = "apuestas-finde-bets-v2";
+const LOCAL_BACKUP_KEY = "apuestas-finde-bets-v2";
 const ACCESS_STORAGE_KEY = "las-parley-access-ok";
 const ACCESS_CODE = "parley";
+const SUPABASE_URL = "https://nqpfjzizpcpuppuosazf.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_EsKSvxHNvARcaNfdxYx1UA_0wBg4kDR";
+const betsTable = "bets";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const state = {
-  bets: loadBets(),
+  bets: [],
   filter: "all",
   search: "",
+  loading: false,
 };
 
 const statusLabels = {
@@ -72,11 +77,10 @@ logoutButton.addEventListener("click", () => {
   accessCodeInput.focus();
 });
 
-betForm.addEventListener("submit", (event) => {
+betForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(betForm);
   const bet = {
-    id: crypto.randomUUID(),
     event: formData.get("event").trim(),
     date: formData.get("date"),
     amount: Number(formData.get("amount")) || 0,
@@ -86,14 +90,15 @@ betForm.addEventListener("submit", (event) => {
     pick: formData.get("pick").trim(),
     notes: formData.get("notes").trim(),
     status: "pending",
-    createdAt: new Date().toISOString(),
   };
 
-  state.bets.unshift(bet);
-  saveBets();
-  betForm.reset();
-  document.querySelector("#dateInput").valueAsDate = new Date();
-  render();
+  try {
+    await createBet(bet);
+    betForm.reset();
+    document.querySelector("#dateInput").valueAsDate = new Date();
+  } catch (error) {
+    showDataError(error);
+  }
 });
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -110,7 +115,7 @@ searchInput.addEventListener("input", () => {
   render();
 });
 
-betList.addEventListener("click", (event) => {
+betList.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
   const card = event.target.closest(".bet-card");
   if (!button || !card) return;
@@ -119,15 +124,21 @@ betList.addEventListener("click", (event) => {
   if (!bet) return;
 
   if (button.dataset.action === "delete") {
-    state.bets = state.bets.filter((item) => item.id !== bet.id);
+    try {
+      await deleteBet(bet.id);
+    } catch (error) {
+      showDataError(error);
+    }
+    return;
   }
 
   if (button.dataset.status) {
-    bet.status = button.dataset.status;
+    try {
+      await updateBetStatus(bet.id, button.dataset.status);
+    } catch (error) {
+      showDataError(error);
+    }
   }
-
-  saveBets();
-  render();
 });
 
 exportButton.addEventListener("click", () => {
@@ -147,9 +158,7 @@ importInput.addEventListener("change", async () => {
   try {
     const imported = JSON.parse(await file.text());
     if (!Array.isArray(imported)) throw new Error("Formato invalido");
-    state.bets = imported.filter(isValidBet);
-    saveBets();
-    render();
+    await importBets(imported.filter(isValidBet));
   } catch {
     alert("No pude importar ese archivo. Revisa que sea un JSON exportado desde esta app.");
   } finally {
@@ -161,6 +170,14 @@ function render() {
   const visibleBets = getVisibleBets();
   betList.innerHTML = "";
   visibleBets.forEach((bet) => betList.appendChild(createBetCard(bet)));
+
+  if (state.loading) {
+    emptyState.querySelector("h2").textContent = "Cargando tickets...";
+    emptyState.querySelector("p").textContent = "Estamos trayendo la banca desde Supabase.";
+  } else {
+    emptyState.querySelector("h2").textContent = "Todavia no hay tickets";
+    emptyState.querySelector("p").textContent = "Carguen la primera apuesta grupal y el tablero va llevando stake, cuota y balance.";
+  }
 
   emptyState.classList.toggle("is-visible", visibleBets.length === 0);
   renderSummary();
@@ -303,22 +320,6 @@ function getBetReturnLabel(bet) {
   return `Balance ${formatSignedMoney(calculateProfit(bet))}`;
 }
 
-function loadBets() {
-  try {
-    const latest = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (latest) return latest;
-
-    const old = JSON.parse(localStorage.getItem("penca-finde-bets-v1")) ?? [];
-    return old.map((bet) => ({ ...bet, odds: bet.odds ?? 2, book: bet.book ?? "" }));
-  } catch {
-    return [];
-  }
-}
-
-function saveBets() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.bets));
-}
-
 function isValidBet(bet) {
   return bet && bet.id && bet.event && bet.date && bet.friend && bet.pick && bet.status && bet.odds;
 }
@@ -339,6 +340,121 @@ function unlockApp() {
   document.body.classList.remove("is-locked");
   loginScreen.hidden = true;
   siteContent.setAttribute("aria-hidden", "false");
+  loadRemoteBets();
+}
+
+async function loadRemoteBets() {
+  state.loading = true;
+  render();
+
+  const { data, error } = await supabaseClient
+    .from(betsTable)
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  state.loading = false;
+  if (error) {
+    state.bets = loadLocalBackup();
+    render();
+    showDataError(error);
+    return;
+  }
+
+  state.bets = data.map(normalizeBet);
+  saveLocalBackup();
+  render();
+}
+
+async function createBet(bet) {
+  const { data, error } = await supabaseClient
+    .from(betsTable)
+    .insert(toDatabaseBet(bet))
+    .select()
+    .single();
+
+  if (error) throw error;
+  state.bets.unshift(normalizeBet(data));
+  saveLocalBackup();
+  render();
+}
+
+async function updateBetStatus(id, status) {
+  const { data, error } = await supabaseClient
+    .from(betsTable)
+    .update({ status })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  state.bets = state.bets.map((bet) => (bet.id === id ? normalizeBet(data) : bet));
+  saveLocalBackup();
+  render();
+}
+
+async function deleteBet(id) {
+  const { error } = await supabaseClient.from(betsTable).delete().eq("id", id);
+  if (error) throw error;
+  state.bets = state.bets.filter((bet) => bet.id !== id);
+  saveLocalBackup();
+  render();
+}
+
+async function importBets(bets) {
+  const rows = bets.map(toDatabaseBet);
+  const { data, error } = await supabaseClient.from(betsTable).upsert(rows).select();
+  if (error) throw error;
+  state.bets = data.map(normalizeBet).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  saveLocalBackup();
+  render();
+}
+
+function normalizeBet(row) {
+  return {
+    id: row.id,
+    event: row.event,
+    date: row.date,
+    amount: Number(row.amount) || 0,
+    odds: Number(row.odds) || 1,
+    book: row.book ?? "",
+    friend: row.friend ?? "Grupo",
+    pick: row.pick,
+    notes: row.notes ?? "",
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+function toDatabaseBet(bet) {
+  return {
+    id: bet.id,
+    event: bet.event,
+    date: bet.date,
+    amount: bet.amount,
+    odds: bet.odds,
+    book: bet.book,
+    friend: bet.friend || "Grupo",
+    pick: bet.pick,
+    notes: bet.notes,
+    status: bet.status,
+  };
+}
+
+function saveLocalBackup() {
+  localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(state.bets));
+}
+
+function loadLocalBackup() {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_BACKUP_KEY)) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function showDataError(error) {
+  console.error(error);
+  alert("No pude sincronizar con Supabase. Revisa que la tabla bets exista y que las politicas permitan leer/escribir.");
 }
 
 render();

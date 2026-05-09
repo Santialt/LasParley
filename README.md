@@ -10,6 +10,16 @@ const ACCESS_CODE = "parley";
 
 Esto sirve como filtro liviano para amigos. No es seguridad real de servidor, porque GitHub Pages publica archivos estaticos.
 
+## Supabase
+
+La app guarda las apuestas en Supabase para que todos vean lo mismo desde cualquier dispositivo.
+
+Antes de usarla, abrir Supabase y pegar el contenido de `supabase.sql` en:
+
+`SQL Editor` -> `New query` -> `Run`
+
+Ese script crea la tabla `bets` y las politicas para que la app pueda leer, crear, actualizar y borrar tickets usando la publishable key.
+
 ## Como hostearla en GitHub Pages
 
 1. Crear un repo nuevo en GitHub.
@@ -34,6 +44,4 @@ https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/
 
 ## Importante
 
-La app no usa backend. Los datos se guardan en el navegador con `localStorage`.
-
-Para compartir el estado entre ustedes, usen `Exportar` e `Importar`. Si quieren que todos vean los mismos tickets en vivo desde distintos celulares, el siguiente paso es conectarla a una base compartida como Supabase o Firebase.
+Los datos principales se guardan en Supabase. El navegador mantiene una copia local solo como backup si falla la conexion.

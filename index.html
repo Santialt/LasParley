@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Apuestas del Finde</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Banca compartida</p>
+        <h1>La Banca del Finde</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost-button" id="exportButton" type="button" title="Exportar datos">
+          Exportar
+        </button>
+        <label class="import-label" title="Importar datos">
+          Importar
+          <input id="importInput" type="file" accept="application/json" />
+        </label>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="summary-grid" aria-label="Resumen">
+        <article class="summary-card">
+          <span>Apuestas pendientes</span>
+          <strong id="activeCount">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>Plata en juego</span>
+          <strong id="activeStake">$0</strong>
+        </article>
+        <article class="summary-card">
+          <span>Stake cerrado</span>
+          <strong id="settledStake">$0</strong>
+        </article>
+        <article class="summary-card">
+          <span>Balance del grupo</span>
+          <strong id="totalBalance">$0</strong>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <form class="bet-form" id="betForm">
+          <div class="form-header">
+            <div>
+              <p class="eyebrow">Nueva apuesta</p>
+              <h2>Cargar ticket</h2>
+            </div>
+            <button class="icon-button" id="resetFormButton" type="reset" title="Limpiar formulario">
+              Limpiar
+            </button>
+          </div>
+
+          <label>
+            Partido / evento
+            <input id="eventInput" name="event" type="text" placeholder="Boca vs River" required />
+          </label>
+
+          <div class="split">
+            <label>
+              Fecha
+              <input id="dateInput" name="date" type="date" required />
+            </label>
+            <label>
+              Stake
+              <input id="amountInput" name="amount" type="number" min="0" step="100" placeholder="1000" required />
+            </label>
+          </div>
+
+          <div class="split">
+            <label>
+              Cuota
+              <input id="oddsInput" name="odds" type="number" min="1" step="0.01" placeholder="1.85" required />
+            </label>
+            <label>
+              Casa
+              <input id="bookInput" name="book" type="text" placeholder="Bet365" />
+            </label>
+          </div>
+
+          <label>
+            Quien la cargo
+            <input id="friendInput" name="friend" type="text" placeholder="Tincho" />
+          </label>
+
+          <label>
+            Pronostico
+            <input id="pickInput" name="pick" type="text" placeholder="River gana / +2.5 goles / ambos convierten" required />
+          </label>
+
+          <label>
+            Notas / condiciones
+            <textarea id="notesInput" name="notes" rows="3" placeholder="Simple, combinada, live, cashout, etc."></textarea>
+          </label>
+
+          <button class="primary-button" type="submit">Guardar apuesta</button>
+        </form>
+
+        <section class="board" aria-label="Listado de apuestas">
+          <div class="board-toolbar">
+            <div class="tabs" role="tablist" aria-label="Filtros">
+              <button class="tab is-active" type="button" data-filter="all">Todas</button>
+              <button class="tab" type="button" data-filter="pending">Pendientes</button>
+              <button class="tab" type="button" data-filter="won">Verdes</button>
+              <button class="tab" type="button" data-filter="lost">Rojas</button>
+            </div>
+            <input id="searchInput" class="search" type="search" placeholder="Buscar..." />
+          </div>
+
+          <div class="week-strip" id="weekStrip" aria-label="Fines de semana"></div>
+          <div class="bet-list" id="betList"></div>
+          <div class="empty-state" id="emptyState">
+            <h2>Todavia no hay tickets</h2>
+            <p>Carguen la primera apuesta grupal y el tablero va llevando stake, cuota y balance.</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="leaderboard" aria-label="Rendimiento del grupo">
+        <div>
+          <p class="eyebrow">Rendimiento</p>
+          <h2>Como viene la banda</h2>
+        </div>
+        <div class="leaderboard-list group-stats" id="groupStats"></div>
+      </section>
+    </main>
+
+    <template id="betCardTemplate">
+      <article class="bet-card">
+        <div class="bet-card-main">
+          <div>
+            <p class="bet-date"></p>
+            <h3 class="bet-event"></h3>
+          </div>
+          <span class="status-pill"></span>
+        </div>
+        <div class="bet-meta">
+          <span class="bet-friend"></span>
+          <span class="bet-pick"></span>
+          <span class="bet-amount"></span>
+          <span class="bet-odds"></span>
+          <span class="bet-book"></span>
+          <span class="bet-return"></span>
+        </div>
+        <p class="bet-notes"></p>
+        <div class="bet-actions">
+          <button type="button" data-status="pending">Pendiente</button>
+          <button type="button" data-status="won">Verde</button>
+          <button type="button" data-status="lost">Roja</button>
+          <button class="danger" type="button" data-action="delete">Borrar</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
